@@ -19,7 +19,7 @@ void setup() {
   rtc.writeSQW(SQW_SQUARE_1);
   rtc.autoTime();
 
-  String filename = String(rtc.month()) + "-" + String(rtc.date()) + "-" + String(rtc.year()) + ".txt";
+  String filename = String(rtc.month()) +  String(rtc.date()) + String(rtc.hour()) + String(rtc.minute()) + ".txt";
   Serial.println(filename);
   myFile = SD.open(filename, FILE_WRITE);
   if (SD.begin()) {
