@@ -17,26 +17,57 @@ void setup() {
 
   rtc.begin();
   rtc.writeSQW(SQW_SQUARE_1);
-  rtc.autoTime();
 
-  String filename = String(rtc.month()) +  String(rtc.date()) + String(rtc.hour()) + String(rtc.minute()) + ".txt";
-  Serial.println(filename);
-  myFile = SD.open(filename, FILE_WRITE);
-  if (SD.begin()) {
+  if (SD.begin(SD_CS)) {
     Serial.println("SD card is ready to use.");
+    String filename = makeFileName();
+    Serial.println(filename);
+    myFile = SD.open(filename, FILE_WRITE);
     if (myFile) {
+      Serial.print("Writing to " + filename);
       myFile.print("testing");
       myFile.close();
-      Serial.write(myFile.read());
+      Serial.println("...done.");
+      Serial.print("Opening " + filename);
+      myFile = SD.open(filename);
+      if (myFile) {
+        Serial.println("...done.");
+        // read from the file until there's nothing else in it:
+        while (myFile.available()) {
+          Serial.write(myFile.read());
+        }
+        // close the file:
+        myFile.close();
+      } else {
+        Serial.println("Error opening " + filename);
+      }
     } else {
-      Serial.println("Error opening " + filename);
+      Serial.println("SD card failed.");
     }
-  } else {
-    Serial.println("SD card failed.");
   }
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+}
 
+String makeFileName() {
+  rtc.autoTime();
+  rtc.update();
+  
+  String name = String(rtc.month());
+  name += String(rtc.date());
+
+  if (rtc.hour() < 10) {
+    name += "0" + String(rtc.hour());
+  } else {
+    name += String(rtc.hour());
+  }
+  if (rtc.minute() < 10) {
+    name += "0" + String(rtc.minute());
+  } else {
+    name += String(rtc.minute());
+  }
+  name += ".txt";
+  return name;
 }
