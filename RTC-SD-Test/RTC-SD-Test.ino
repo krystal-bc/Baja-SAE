@@ -54,10 +54,19 @@ void loop() {
 String makeFileName() {
   rtc.autoTime();
   rtc.update();
-  
-  String name = String(rtc.month());
-  name += String(rtc.date());
 
+  String name = "";
+
+  if (rtc.month() < 10) {
+    name += "0" + String(rtc.month());
+  } else {
+    name += String(rtc.month());
+  }
+  if (rtc.date() < 10) {
+    name += "0" + String(rtc.date());
+  } else {
+    name += String(rtc.date());
+  }
   if (rtc.hour() < 10) {
     name += "0" + String(rtc.hour());
   } else {
@@ -70,4 +79,4 @@ String makeFileName() {
   }
   name += ".txt";
   return name;
-}
+} 
