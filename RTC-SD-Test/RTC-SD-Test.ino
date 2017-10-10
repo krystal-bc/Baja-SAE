@@ -1,22 +1,26 @@
-#include <SparkFunDS1307RTC.h>
+#include <RTClib.h>
 #include <Wire.h>
 #include <SPI.h>
 #include <SD.h>
 
-#define RTC_SQW 2
+#if defined(ARDUINO_ARCH_SAMD)
+// for Zero, output on USB Serial console, remove line below if using programming port to program the Zero!
+#define Serial SerialUSB
+#endif
+
 #define SD_CS 53
 
+RTC_Millis rtc;
+DateTime now;
 File myFile;
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
 
-  pinMode(RTC_SQW, INPUT_PULLUP);
   pinMode(SD_CS, OUTPUT);
-
-  rtc.begin();
-  rtc.writeSQW(SQW_SQUARE_1);
+  rtc.begin(DateTime(F(__DATE__) , F(__TIME__)));
+  
 
   if (SD.begin(SD_CS)) {
     Serial.println("SD card is ready to use.");
@@ -48,35 +52,36 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+    now = rtc.now();
 }
 
 String makeFileName() {
-  rtc.autoTime();
-  rtc.update();
-
+  now = rtc.now();
   String name = "";
+  
+  if (now.month() < 10) {
+    name += "0" + String(now.month());
+  } else {
+    name += String(now.month());
+  }
+  
+  if (now.day() < 10) {
+    name += "0" + String(now.day());
+  } else {
+    name += String(now.day());
+  }
 
-  if (rtc.month() < 10) {
-    name += "0" + String(rtc.month());
+  if (now.hour() < 10) {
+    name += "0" + String(now.hour());
   } else {
-    name += String(rtc.month());
+    name += String(now.hour());
   }
-  if (rtc.date() < 10) {
-    name += "0" + String(rtc.date());
+  
+  if (now.minute() < 10) {
+    name += "0" + String(now.minute());
   } else {
-    name += String(rtc.date());
-  }
-  if (rtc.hour() < 10) {
-    name += "0" + String(rtc.hour());
-  } else {
-    name += String(rtc.hour());
-  }
-  if (rtc.minute() < 10) {
-    name += "0" + String(rtc.minute());
-  } else {
-    name += String(rtc.minute());
+    name += String(now.minute());
   }
   name += ".txt";
   return name;
-} 
+}
