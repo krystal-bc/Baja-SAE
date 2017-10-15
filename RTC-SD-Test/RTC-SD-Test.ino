@@ -49,7 +49,7 @@ void setup() {
 
 void loop() {
   now = rtc.now();
-  if (getButtonState()){
+  if (buttonIsPushed()){
     manageFile();//fix this
   }
   
@@ -91,14 +91,14 @@ void manageFile() {
   }
 }
 
-bool getButtonState() {
-  bool hasChanged = false;
+bool buttonIsPushed() {
+  bool wasPushed = false;
   buttonState = digitalRead(BUTTON_PIN);
   if (buttonState != lastButtonState) {
-    hasChanged = true;
     if (buttonState == LOW) {
       // if the current state is LOW then the button went from unpushed to pushed:
       buttonPushCounter++;
+      wasPushed = true;
       Serial.println("on");
       Serial.print("number of button pushes: ");
       Serial.println(buttonPushCounter);
@@ -111,7 +111,7 @@ bool getButtonState() {
   }
   // save the current state as the last state
   lastButtonState = buttonState;
-  return hasChanged;
+  return wasPushed;
 }
 
 String makeFileName() {
