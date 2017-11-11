@@ -23,6 +23,7 @@
 */
 
 //TODO: integrate HE sensors, LEDs, voltage sensor, temperature sensor, fan
+//update the write statements to SD card
 
 #include <WheatstoneBridge.h>
 #include <LiquidCrystal.h>
@@ -36,7 +37,6 @@
 #define buttonPIN 8
 #define tempSensorPIN A1
 #define voltSensorPIN A2
-#define fanPWMpin 3
 #define LEDlowBattery 13
 #define LEDsdDetect 12
 #define LEDsdRecording 11
@@ -45,6 +45,7 @@
 //#define LED6 8
 #define servo1PIN 44
 #define servo2PIN 45
+#define fanPWMpin 3
 
 RTC_Millis rtc;
 DateTime now;
@@ -76,6 +77,7 @@ void setup() {
   rpmServo2.attach(servo2PIN);
   rpmServo1.write(0);
   rpmServo2.write(0);
+  analogWrite(fanPWMpin, 0);
   pinMode(LEDlowBattery, OUTPUT);
   pinMode(LEDsdDetect, OUTPUT);
   pinMode(LEDsdRecording, OUTPUT);
@@ -98,14 +100,10 @@ void loop() {
 }
 
 void manageFile() {
-  int attempts = 0;
   if (buttonPushCounter % 2 == 1) {//odd pushes begin writing to a new/existing file
-
     if (SD.begin(SD_CS)) {//if the SD card initializes properly make a file
       digitalWrite(LEDsdDetect, HIGH);
-
       filename = makeFileName();
-
       myFile = SD.open(filename, FILE_WRITE);
       if (myFile) {//if the file was made properly
         digitalWrite(LEDsdRecording, HIGH);
@@ -272,7 +270,7 @@ void writeFan(float temperature) {
 }
 
 void blinkLED(int LEDpin) {
-  for (int i = 0; i <= 5; i++) {
+  for (int i = 0; i <= 10; i++) {
     digitalWrite(LEDpin, HIGH);
     delay(1000);
     digitalWrite(LEDpin, LOW);
