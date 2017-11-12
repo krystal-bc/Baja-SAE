@@ -132,12 +132,6 @@ bool buttonIsPushed() {
       // if the current state is LOW then the button went from unpushed to pushed:
       buttonPushCounter++;
       wasPushed = true;
-      Serial.println("on");
-      Serial.print("number of button pushes: ");
-      Serial.println(buttonPushCounter);
-    } else {
-      // if the current state is LOW then the button went from on to off:
-      Serial.println("off");
     }
     // Delay a little bit to avoid bouncing
     delay(50);
@@ -189,19 +183,14 @@ void printForces() {
   lcd.print("Load2:");
   lcd.setCursor(0, 1);
 
-  Serial.print("Load1: ");
   if (force1 > 0) {
     lcd.print(abs(force1), DEC);
     lcd.setCursor(4, 1);
     lcd.print("T");
-    Serial.print(abs(force1));
-    Serial.print(" T\t");
   } else {
     lcd.print(abs(force1), DEC);
     lcd.setCursor(4, 1);
     lcd.print("C");
-    Serial.print(abs(force1));
-    Serial.print(" C\t");
   }
 
   lcd.setCursor(10, 1);           // tab indent
@@ -209,22 +198,15 @@ void printForces() {
 
   if (force2 > 0) {
     lcd.print("NoConn");           // delete when reading load 2
-    Serial.print("NoConn");
     //lcd.print(abs(force2),DEC);
     //lcd.setCursor(15,1);
     //lcd.print("T");
-    //Serial.print(abs(force2));
-    //Serial.print(" T\t");
   } else {
     lcd.print("NoConn");           // delete when reading load 2
-    Serial.print("NoConn");
     //lcd.print(abs(force2),DEC);
     //lcd.setCursor(15,1);
     //lcd.print("C");
-    //Serial.print(abs(force2));
-    //Serial.print(" C\t");
   }
-  Serial.println();
   delay(50);
 }
 
@@ -238,10 +220,7 @@ void checkVoltage() {
   float vOut = (voltageRaw * 5.0) / 1024.0;
   float vIn = vOut / (R2 / (R1 + R2));
 
-  Serial.print("Voltage: ");
-  Serial.println(vIn, 2);
-
-  if (vIn < batteryLimit) {
+   if (vIn < batteryLimit) {
     digitalWrite(LEDlowBattery, HIGH);
   } else {
     digitalWrite(LEDlowBattery, LOW);
@@ -253,14 +232,8 @@ float readTemp() {
   //converts raw data into degrees celsius and prints it out: 500mV/1024
   //temperature = map(x,0,1024,-55.0,150.0); //this might work better
   temperature = temperature * (500 / 1024);
-  Serial.print("CELSIUS: ");
-  Serial.print(temperature);
-  Serial.println("*C ");
   //converts celsius into fahrenheit
   temperature = (temperature * 9 / 5) + 32;
-  Serial.print("FAHRENHEIT: ");
-  Serial.print(temperature);
-  Serial.println("*F");
   return temperature;
 }
 
