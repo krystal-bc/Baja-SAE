@@ -88,7 +88,7 @@ void setup() {
   pinMode(LEDlowBattery, OUTPUT);
   pinMode(LEDsdDetect, OUTPUT);
   pinMode(LEDsdRecording, OUTPUT);
-  //pinMode(tempSensorPIN, INPUT);
+  pinMode(tempSensorPIN, INPUT);
   pinMode(voltSensorPIN, INPUT);
   digitalWrite(LEDsdDetect, LOW);
   digitalWrite(LEDsdRecording, LOW);
@@ -104,6 +104,7 @@ void loop() {
   printForces();
   //runHE();  //is this staying in loop or getting its own method?
   printTime();
+  myFile.println("");
   checkVoltage();
 }
 
@@ -120,7 +121,7 @@ void manageFile() {
         digitalWrite(LEDsdRecording, HIGH);
         Serial.println("...done.");
         Serial.print("Writing to " + filename);
-        //myFile.print("testing");
+        myFile.println("Force1, Type, HE1, HE2, Ratio, Speed, Time"); //make sure heading matches values
       } else {
         Serial.print("...could not create file.");
         digitalWrite(LEDsdRecording, LOW);
@@ -214,44 +215,39 @@ void printForces() {
   lcd.setCursor(0, 1);
 
   Serial.print("Load1: ");
+  Serial.print(abs(force1));
   myFile.print(abs(force1));
-  myFile.print(", ");
+  lcd.print(abs(force1), DEC);
+  lcd.setCursor(4, 1);
   if (force1 > 0) {
-    lcd.print(abs(force1), DEC);
-    lcd.setCursor(4, 1);
-    lcd.print("T");
-    Serial.print(abs(force1));
     Serial.print(" T\t");
+    myFile.print(", T,");
+    lcd.print("T");
   } else {
-    lcd.print(abs(force1), DEC);
-    lcd.setCursor(4, 1);
     lcd.print("C");
-    Serial.print(abs(force1));
     Serial.print(" C\t");
+    myFile.print(", C,");
   }
 
   lcd.setCursor(10, 1);           // tab indent
   Serial.print("Load2: ");
-
+  lcd.print("NoConn");           // delete when reading load 2
+  Serial.print("NoConn");
+  /*
+  lcd.print(abs(force2),DEC);
+  lcd.setCursor(15,1);
+  Serial.print(abs(force2));
+  myFile.print(abs(force2));
   if (force2 > 0) {
-    lcd.print("NoConn");           // delete when reading load 2
-    Serial.print("NoConn");
-    //lcd.print(abs(force2),DEC);
-    //lcd.setCursor(15,1);
-    //lcd.print("T");
-    //Serial.print(abs(force2));
-    //Serial.print(" T\t");
+    lcd.print("T");
+    Serial.print(" T\t");
+    myFile.print(", T,");
   } else {
-    lcd.print("NoConn");           // delete when reading load 2
-    Serial.print("NoConn");
-    //lcd.print(abs(force2),DEC);
-    //lcd.setCursor(15,1);
-    //lcd.print("C");
-    //Serial.print(abs(force2));
-    //Serial.print(" C\t");
-    //myFile.print(abs(force2));
-    //myFile.print(", ");
+    lcd.print("C");
+    Serial.print(" C\t");
+    myFile.print(", C,");
   }
+  */
   Serial.println();
   delay(50);
 }
@@ -297,8 +293,7 @@ void checkVoltage() {
 float readTemp() {
   float temperature = analogRead(tempSensorPIN);
   //converts raw data into degrees celsius and prints it out: 500mV/1024
-  //temperature = map(x,0,1024,-55.0,150.0); //this might work better
-  temperature = temperature * (500 / 1024);
+  temperature = map(x,0,1024,-55.0,150.0);
   Serial.print("CELSIUS: ");
   Serial.print(temperature);
   Serial.println("*C ");

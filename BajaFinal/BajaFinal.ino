@@ -79,7 +79,6 @@ void setup() {
   ratioServo2.write(0);
   pinMode(fanPWMpin, OUTPUT);
   analogWrite(fanPWMpin, 0);
-  analogWrite(fanPWMpin, 0);
   pinMode(LEDlowBattery, OUTPUT);
   pinMode(LEDsdDetect, OUTPUT);
   pinMode(LEDsdRecording, OUTPUT);
@@ -99,6 +98,7 @@ void loop() {
   printForces();
   //runHE();  //is this staying in loop or getting its own method?
   printTime();
+  myFile.println("");
   checkVoltage();
 }
 
@@ -110,7 +110,7 @@ void manageFile() {
       myFile = SD.open(filename, FILE_WRITE);
       if (myFile) {//if the file was made properly
         digitalWrite(LEDsdRecording, HIGH);
-        //myFile.print("testing");
+        myFile.println("Force1, Type, HE1, HE2, Ratio, Speed, Time"); //make sure heading matches values
       } else {
         digitalWrite(LEDsdRecording, LOW);
       }
@@ -201,15 +201,18 @@ void printForces() {
 
   lcd.setCursor(10, 1);
   lcd.print("NoConn");           // delete when reading load 2
-  //lcd.print(abs(force2),DEC);
-  //lcd.setCursor(15,1);
+  /*
+  lcd.print(abs(force2),DEC);
+  lcd.setCursor(15,1);
+  myFile.print(abs(force2));
   if (force2 > 0) {
-    //lcd.print("T");
-    //myFile.print(", T,");
+    lcd.print("T");
+    myFile.print(", T,");
   } else {
-    //lcd.print("C");
-    //myFile.print(", C,");
+    lcd.print("C");
+    myFile.print(", C,");
   }
+  */
   delay(50);
 }
 
@@ -251,8 +254,7 @@ void checkVoltage() {
 float readTemp() {
   float temperature = analogRead(tempSensorPIN);
   //converts raw data into degrees celsius and prints it out: 500mV/1024
-  //temperature = map(x,0,1024,-55.0,150.0); //this might work better
-  temperature = temperature * (500 / 1024);
+  temperature = map(x,0,1024,-55.0,150.0);
   //converts celsius into fahrenheit
   temperature = (temperature * 9 / 5) + 32;
   return temperature;
