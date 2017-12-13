@@ -22,8 +22,7 @@
 
 */
 
-//TODO: integrate HE sensors, LEDs, voltage sensor, temperature sensor, fan
-//update the write statements to SD card
+//TODO: integrate HE sensors/servos and update the write statements to SD card
 
 #include <WheatstoneBridge.h>
 #include <LiquidCrystal.h>
@@ -34,18 +33,19 @@
 #include <Servo.h>
 
 #define SD_CS 53
-#define buttonPIN 8
-#define tempSensorPIN A1
-#define voltSensorPIN A2
-#define LEDlowBattery 13
-#define LEDsdDetect 12
+#define buttonRecord A6
+//#define buttonPIN2 A7
+#define tempSensorPIN A14
+#define voltSensorPIN A11
 #define LEDsdRecording 11
-//#define LED4 10
-//#define LED5 9
-//#define LED6 8
+#define LEDsdDetect 10
+//#define LED5 12
+#define LEDlowBattery 1
+//#define LED4 0
+
 #define servo1PIN 44
-#define servo2PIN 45
-#define fanPWMpin 3
+#define servo2PIN 46
+#define fanPWMpin 13
 
 RTC_Millis rtc;
 DateTime now;
@@ -58,8 +58,8 @@ WheatstoneBridge cell_2(A1, 365, 675, 0, 1000);
 
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 
-Servo rpmServo1;
-Servo rpmServo2;
+Servo speedServo1;
+Servo ratioServo2;
 
 int buttonPushCounter = 0;   // counter for the number of button presses
 int buttonState = 0;         // current state of the button
@@ -69,19 +69,20 @@ int force1;
 int force2;
 
 void setup() {
-  pinMode(buttonPIN, INPUT_PULLUP);
+  pinMode(buttonRecord, INPUT_PULLUP);
   pinMode(SD_CS, OUTPUT);
   rtc.begin(DateTime(F(__DATE__) , F(__TIME__)));
   lcd.begin(16, 2);
-  rpmServo1.attach(servo1PIN);
-  rpmServo2.attach(servo2PIN);
-  rpmServo1.write(0);
-  rpmServo2.write(0);
+  speedServo1.attach(servo1PIN);
+  ratioServo2.attach(servo2PIN);
+  speedServo1.write(0);
+  ratioServo2.write(0);
+  pinMode(fanPWMpin, OUTPUT);
+  analogWrite(fanPWMpin, 0);
   analogWrite(fanPWMpin, 0);
   pinMode(LEDlowBattery, OUTPUT);
   pinMode(LEDsdDetect, OUTPUT);
   pinMode(LEDsdRecording, OUTPUT);
-  pinMode(fanPWMpin, OUTPUT);
   pinMode(tempSensorPIN, INPUT);
   pinMode(voltSensorPIN, INPUT);
   digitalWrite(LEDsdDetect, LOW);
@@ -94,9 +95,11 @@ void loop() {
   if (buttonIsPushed()) {
     manageFile();
   }
-  printForces();//TODO: write to SD card
+  printForces();
+  printForces();
+  //runHE();  //is this staying in loop or getting its own method?
+  printTime();
   checkVoltage();
-  writeFan(readTemp());
 }
 
 void manageFile() {
@@ -107,7 +110,7 @@ void manageFile() {
       myFile = SD.open(filename, FILE_WRITE);
       if (myFile) {//if the file was made properly
         digitalWrite(LEDsdRecording, HIGH);
-        myFile.print("testing");
+        //myFile.print("testing");
       } else {
         digitalWrite(LEDsdRecording, LOW);
       }
@@ -126,12 +129,14 @@ void manageFile() {
 
 bool buttonIsPushed() {
   bool wasPushed = false;
-  buttonState = digitalRead(buttonPIN);
+  buttonState = digitalRead(buttonRecord);
   if (buttonState != lastButtonState) {
     if (buttonState == LOW) {
       // if the current state is LOW then the button went from unpushed to pushed:
       buttonPushCounter++;
       wasPushed = true;
+    } else {
+      // if the current state is LOW then the button went from on to off:
     }
     // Delay a little bit to avoid bouncing
     delay(50);
@@ -142,33 +147,33 @@ bool buttonIsPushed() {
 }
 
 String makeFileName() {
-  String name = "";
+  String file = "";
 
   if (now.month() < 10) {
-    name += "0" + String(now.month());
+    file += "0" + String(now.month());
   } else {
-    name += String(now.month());
+    file += String(now.month());
   }
 
   if (now.day() < 10) {
-    name += "0" + String(now.day());
+    file += "0" + String(now.day());
   } else {
-    name += String(now.day());
+    file += String(now.day());
   }
 
   if (now.hour() < 10) {
-    name += "0" + String(now.hour());
+    file += "0" + String(now.hour());
   } else {
-    name += String(now.hour());
+    file += String(now.hour());
   }
 
   if (now.minute() < 10) {
-    name += "0" + String(now.minute());
+    file += "0" + String(now.minute());
   } else {
-    name += String(now.minute());
+    file += String(now.minute());
   }
-  name += ".txt";
-  return name;
+  file += ".txt";
+  return file;
 }
 
 void printForces() {
@@ -182,32 +187,48 @@ void printForces() {
   lcd.setCursor(10, 0);
   lcd.print("Load2:");
   lcd.setCursor(0, 1);
-
+  
+  myFile.print(abs(force1));
+  lcd.print(abs(force1), DEC);
+  lcd.setCursor(4, 1);
   if (force1 > 0) {
-    lcd.print(abs(force1), DEC);
-    lcd.setCursor(4, 1);
     lcd.print("T");
+    myFile.print(", T,");
   } else {
-    lcd.print(abs(force1), DEC);
-    lcd.setCursor(4, 1);
     lcd.print("C");
+    myFile.print(", C,");
   }
 
-  lcd.setCursor(10, 1);           // tab indent
-  Serial.print("Load2: ");
-
+  lcd.setCursor(10, 1);
+  lcd.print("NoConn");           // delete when reading load 2
+  //lcd.print(abs(force2),DEC);
+  //lcd.setCursor(15,1);
   if (force2 > 0) {
-    lcd.print("NoConn");           // delete when reading load 2
-    //lcd.print(abs(force2),DEC);
-    //lcd.setCursor(15,1);
     //lcd.print("T");
+    //myFile.print(", T,");
   } else {
-    lcd.print("NoConn");           // delete when reading load 2
-    //lcd.print(abs(force2),DEC);
-    //lcd.setCursor(15,1);
     //lcd.print("C");
+    //myFile.print(", C,");
   }
   delay(50);
+}
+
+void printTime() {
+  String currentTime = "";
+  if (now.hour() < 10) {
+    currentTime += "0" + String(now.hour());
+  } else {
+    currentTime += String(now.hour());
+  }
+  currentTime += ":";
+  if (now.minute() < 10) {
+    currentTime += "0" + String(now.minute());
+  } else {
+    currentTime += String(now.minute());
+  }
+  currentTime += ",";
+  myFile.print(currentTime);
+
 }
 
 void checkVoltage() {
@@ -220,7 +241,7 @@ void checkVoltage() {
   float vOut = (voltageRaw * 5.0) / 1024.0;
   float vIn = vOut / (R2 / (R1 + R2));
 
-   if (vIn < batteryLimit) {
+  if (vIn < batteryLimit) {
     digitalWrite(LEDlowBattery, HIGH);
   } else {
     digitalWrite(LEDlowBattery, LOW);
