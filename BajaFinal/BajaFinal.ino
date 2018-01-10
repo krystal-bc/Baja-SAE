@@ -22,7 +22,7 @@
 
 */
 
-//TODO: integrate HE sensors/servos and update the write statements to SD card
+//TODO: designate HE/Servos to speed and ratio, update the write statements to SD card, fix range for temperature sensor
 
 #include <WheatstoneBridge.h>
 #include <LiquidCrystal.h>
@@ -41,11 +41,11 @@
 #define LEDsdDetect 10
 //#define LED5 12
 #define LEDlowBattery 1
-//#define LED4 0
+//#define LED4 
 
 #define servo1PIN 44
 #define servo2PIN 46
-#define fanPWMpin 13
+#define fanPin 13
 
 RTC_Millis rtc;
 DateTime now;
@@ -58,8 +58,8 @@ WheatstoneBridge cell_2(A1, 365, 675, 0, 1000);
 
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 
-Servo speedServo1;
-Servo ratioServo2;
+Servo rpmServo1;
+Servo rpmServo2;
 
 int buttonPushCounter = 0;   // counter for the number of button presses
 int buttonState = 0;         // current state of the button
@@ -69,17 +69,25 @@ bool recording;
 int force1;
 int force2;
 
+unsigned int rpm1 = 0;               // RPM value
+unsigned int rpm2 = 0;
+
+unsigned long oldTime1 = 0;          // time value
+unsigned long oldTime2 = 0;
+unsigned long intTime1 = 60000000;   // time intervals
+unsigned long intTime2 = 60000000;
+int noAction = 0;
+
+int servPos1;             // servo positions
+int servPos2;
+
 void setup() {
   pinMode(buttonRecord, INPUT_PULLUP);
   pinMode(SD_CS, OUTPUT);
   rtc.begin(DateTime(F(__DATE__) , F(__TIME__)));
   lcd.begin(16, 2);
-  speedServo1.attach(servo1PIN);
-  ratioServo2.attach(servo2PIN);
-  speedServo1.write(0);
-  ratioServo2.write(0);
-  pinMode(fanPWMpin, OUTPUT);
-  analogWrite(fanPWMpin, 0);
+  pinMode(fanPin, OUTPUT);
+  analogWrite(fanPin, LOW);
   pinMode(LEDlowBattery, OUTPUT);
   pinMode(LEDsdDetect, OUTPUT);
   pinMode(LEDsdRecording, OUTPUT);
@@ -88,6 +96,12 @@ void setup() {
   digitalWrite(LEDsdDetect, LOW);
   digitalWrite(LEDsdRecording, LOW);
   digitalWrite(LEDlowBattery, LOW);
+  attachInterrupt(5, magnet1, RISING);    // pin 18 = sensor1 input
+  attachInterrupt(4, magnet2, RISING);    // pin 19= sensor2 input
+  rpmServo1.attach(servo1PIN);                   // pin 44 = servo1 output
+  rpmServo2.attach(servo2PIN);                   // pin 45 = servo2 output
+  rpmServo1.write(0);
+  rpmServo2.write(0);
 }
 
 void loop() {
@@ -97,14 +111,13 @@ void loop() {
   }
   readForces();
   if (recording) {
-    printTime();
+    
     myFile.println("");
   }
-
-  //runHE();  //is this staying in loop or getting its own method?
-
-
+  readHallEffects();
+  printTime();
   checkVoltage();
+  monitorTemp();
 }
 
 void manageFile() {
@@ -115,7 +128,7 @@ void manageFile() {
       myFile = SD.open(filename, FILE_WRITE);
       if (myFile) {//if the file was made properly
         digitalWrite(LEDsdRecording, HIGH);
-        myFile.println("Force1, Type, HE1, HE2, Ratio, Speed, Time"); //make sure heading matches values
+        myFile.println("Force1,Type,HE1,HE2,RPM1,RPM2,Time"); //make sure heading matches values
         recording = true;
       } else {
         digitalWrite(LEDsdRecording, LOW);
@@ -207,8 +220,10 @@ void readForces() {
   }
   lcd.print(forceType1);
   if (recording) {
-    myFile.print(abs(force1));
+    myFile.print(abs(force1), DEC);
+    myFile.print(",");
     myFile.print(forceType1);
+    myFile.print(",");
   }
   lcd.setCursor(10, 1);
   lcd.print("NoConn");           // delete when reading load 2
@@ -223,11 +238,49 @@ void readForces() {
   }
   lcd.print(forceType2);
   if (recording) {
-    myFile.print(abs(force2));
+    myFile.print(abs(force1), DEC);
+    myFile.print(",");
     myFile.print(forceType2);
+    myFile.print(",");
   }
   */
   delay(50);
+}
+
+void readHallEffects(){
+  rpm1 = 60000000 / intTime1;   // rev/min = (60s/1min)*(60000ms/60s)*(1rev/timeIn(ms))
+  rpm2 = 60000000 / intTime2;
+
+  if (noAction > 10) {                    // if 10 loops pass with no magnetic detection
+    rpm1 = 0;                             // reset servo positions to 0
+    rpm2 = 0;
+    noAction = 11;                        // prevent overflow of int
+  }
+
+  servPos1 = map(rpm1, 100, 1800, 160, 0);    // Servo1 range: 0 - 170
+  servPos2 = map(rpm2, 100, 1800, 180, 20);   // Servo2 range: 20 - 180
+  rpmServo1.write(servPos1);                  // set Servo1 to adjusted position
+  rpmServo2.write(servPos2);                  // set Servo2 to adjusted position
+  if (recording) {
+    myFile.print(rpm1);
+    myFile.print(",");
+    myFile.print(rpm2);
+    myFile.print(",");
+  }
+
+  noAction++;
+}
+
+void magnet1() {                              // when magnet is detected
+  intTime1 = micros() - oldTime1;             // update time interval
+  oldTime1 = micros();                        // update starting point for timer1
+  noAction = 0;                               // reset counter
+}
+
+void magnet2() {                              // when magnet is detected
+  intTime2 = (micros() - oldTime2);           // update time interval
+  oldTime2 = micros();                        // update starting point for timer2
+  noAction = 0;                               // reset counter
 }
 
 void printTime() {
@@ -265,18 +318,16 @@ void checkVoltage() {
   }
 }
 
-float readTemp() {
-  float temperature = analogRead(tempSensorPIN);
+void monitorTemp() {
+  float rawTemp = analogRead(tempSensorPIN);
   //converts raw data into degrees celsius and prints it out: 500mV/1024
-  temperature = map(x, 0, 1024, -55.0, 150.0);
+  tempC = map(rawTemp, 0, 1024, -50.0, 300.0);
   //converts celsius into fahrenheit
-  temperature = (temperature * 9 / 5) + 32;
-  return temperature;
-}
+  tempF = (tempC * 9 / 5) + 32;
 
-void writeFan(float temperature) {
-  int fanSpeed = map(temperature, 80, 302, 0, 255); //change this to proper range
-  analogWrite(fanPWMpin, fanSpeed);
+  if (tempF > 80){
+   digitalWrite(fanPin, HIGH); 
+  }
 }
 
 void blinkLED(int LEDpin) {
