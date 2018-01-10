@@ -5,7 +5,7 @@
  * 
 */
 
-#define fanPIN 7
+#define fanPIN 4
 
 void setup() {
   Serial.begin(9600);
