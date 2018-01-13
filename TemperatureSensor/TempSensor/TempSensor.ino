@@ -1,4 +1,4 @@
-#define tempSensorPIN A0
+#define tempSensorPIN A14
 
 void setup() {
   Serial.begin(9600);
@@ -15,14 +15,14 @@ void readTemp() {
   Serial.print("RAW: ");
   Serial.print(temperatureRaw);
   //converts raw data into degrees celsius
-  float tempC = map(temperatureRaw,0,1024,-50,300);//find out range
-  Serial.print("\tCELSIUS: ");
-  Serial.print(tempC);
-  Serial.print("*C \t"); 
-  //converts celsius into fahrenheit
-  float tempF = (tempC * 9 / 5) + 32;
-  Serial.print("FAHRENHEIT: ");
+  float tempF = map(temperatureRaw,0,255,-50,300);//find out range
+  Serial.print("\tFAHRENHEIT: ");
   Serial.print(tempF);
-  Serial.println("*F");
+  Serial.print("*F \t"); 
+  //converts celsius into fahrenheit
+  float tempC = (tempF * 5 / 9) - 32;
+  Serial.print("CELSIUS: ");
+  Serial.print(tempC);
+  Serial.println("*C");
 }
 
