@@ -1,6 +1,6 @@
 /* Krystal Bernal    
    CSULA Baja SAE   
-   Last updated: 10/13/17   
+   Last updated: 1/24/18   
     
    This program uses a button, MicroSD card breakout board, and a RTC to create and write to a timestamped .txt file    
     
@@ -29,22 +29,23 @@
 #endif    
     
 #define SD_CS 53    
-#define BUTTON_PIN 8    
-    
+#define button1 A6
+
 RTC_Millis rtc;   
 DateTime now;   
 File myFile;    
 String filename;    
     
-int buttonPushCounter = 0;   // counter for the number of button presses    
-int buttonState = 0;         // current state of the button   
-int lastButtonState = 0;     // previous state of the button    
+unsigned int btnState1;
+unsigned int lastBtnState1;
+unsigned int btnCounter1 = 0;   
     
 void setup() {    
-  Serial.begin(9600);   
-  pinMode(BUTTON_PIN, INPUT_PULLUP);    
+  Serial.begin(9600);
+  pinMode(button1, INPUT_PULLUP);   
   pinMode(SD_CS, OUTPUT);   
-  rtc.begin(DateTime(F(__DATE__) , F(__TIME__)));   
+  rtc.begin(DateTime(F(__DATE__) , F(__TIME__)));
+  SD.begin(SD_CS);   
 }   
     
 void loop() {   
@@ -57,9 +58,15 @@ void loop() {
     
 void manageFile() {   
   int attempts = 0;   
-  if (buttonPushCounter % 2 == 1) {//odd pushes begin writing to a new/existing file    
+  if (btnCounter1 % 2 == 1) {//odd pushes begin writing to a new/existing file    
     Serial.print("SD card initializing...");    
-    if (SD.begin(SD_CS)) {//if the SD card initializes properly make a file   
+
+
+    //fix this
+
+
+    
+    if () {//if the SD card initializes properly make a file   
       Serial.print("SD card is ready to use. Making new file: ");   
       filename = makeFileName();    
       Serial.println(filename);   
@@ -74,7 +81,7 @@ void manageFile() {
     } else {//if the SD card doesn't initialize properly    
       Serial.println("initialization failed.");   
     }   
-  } else if (buttonPushCounter != 0) { //even pushes: close (save) the file, then reopen it to read its contents    
+  } else if (btnCounter1 % 2 == 0 && btnCounter1 > 0) { //even pushes: close (save) the file, then reopen it to read its contents    
     if (myFile) {   
       myFile.close();   
       Serial.println("...done.");   
@@ -93,24 +100,23 @@ void manageFile() {
     
 bool buttonIsPushed() {   
   bool wasPushed = false;   
-  buttonState = digitalRead(BUTTON_PIN);    
-  if (buttonState != lastButtonState) {   
-    if (buttonState == LOW) {   
-      // if the current state is LOW then the button went from unpushed to pushed:    
-      buttonPushCounter++;    
-      wasPushed = true;   
-      Serial.println("on");   
-      Serial.print("number of button pushes: ");    
-      Serial.println(buttonPushCounter);    
-    } else {    
-      // if the current state is LOW then the button went from on to off:   
-      Serial.println("off");    
-    }   
-    // Delay a little bit to avoid bouncing   
-    delay(50);    
-  }   
-  // save the current state as the last state   
-  lastButtonState = buttonState;    
+  int btn1 = analogRead(button1);
+  if(btn1 < 1000){
+    btnState1 = 1;//off
+  }else{
+    btnState1 = 0;//on
+  }    
+  if(btnState1 != lastBtnState1){
+    if(btnState1 == 0){
+      btnCounter1++;
+      wasPushed = true;
+      Serial.print("button 1 pressed: ");
+      Serial.println(btnCounter1);
+      //reset button counter
+    }
+    delay(50);
+  }
+  lastBtnState1 = btnState1;    
   return wasPushed;   
 }   
     
