@@ -1,40 +1,42 @@
-/*  Krystal Bernal
- *  Last updated: 11/1/17
- *  
- *  This button reads the pressing of a push button
- * 
+/* Krystal Bernal
+   Last updated: 1/24/18
+   Tracks when/how many times a button is pushed
 */
 
-#define BUTTON_PIN 8
+#define button1 A6
 
-int buttonPushCounter = 0;   // counter for the number of button presses
-int buttonState = 0;         // current state of the button
-int lastButtonState = 0;     // previous state of the button
+unsigned int btnState1;
+unsigned int lastBtnState1;
+unsigned int btnCounter1 = 0;
 
 void setup() {
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  Serial.begin(9600);
+  pinMode(button1, INPUT_PULLUP);
+
 }
 
 void loop() {
-  readBtn();
+  readButtons();
+  
 }
 
-void readBtn() {
-  buttonState = digitalRead(BUTTON_PIN);
-  if (buttonState != lastButtonState) {
-    if (buttonState == LOW) {
-      // if the current state is LOW then the button went from unpushed to pushed:
-      buttonPushCounter++;
-      Serial.println("on");
-      Serial.print("number of button pushes: ");
-      Serial.println(buttonPushCounter);
-    } else {
-      // if the current state is LOW then the button went from on to off:
-      Serial.println("off");
+void readButtons(){
+  int btn1 = analogRead(button1);
+  //int btn2 = analogRead(button2);
+  if(btn1 < 1000){
+    btnState1 = 1;//off
+  }else{
+    btnState1 = 0;//on
+  }
+
+  if(btnState1 != lastBtnState1){
+    if(btnState1 == 0){
+      btnCounter1++;
+      Serial.print("button 1 pressed: ");
+      Serial.println(btnCounter1);
+      //reset button counter
     }
-    // Delay a little bit to avoid bouncing
     delay(50);
   }
-  // save the current state as the last state
-  lastButtonState = buttonState;
+  lastBtnState1 = btnState1;
 }
