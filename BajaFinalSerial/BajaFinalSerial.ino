@@ -78,9 +78,6 @@ int buttonState = 0;         // current state of the button
 int lastButtonState = 0;     // previous state of the button
 bool recording;
 
-int force1;
-int force2;
-
 unsigned int rpm1 = 0;        // RPM value
 unsigned int rpm2 = 0;
 
@@ -118,7 +115,7 @@ void setup() {
   Serial.print("SD card initializing...");
   if (SD.begin(SD_CS)) {
     Serial.println("SD card is ready to use.");
-    digitalWrite(LED1, HIGH);
+    digitalWrite(LEDsdInitialized, HIGH);
   } else {
     Serial.println("initialization failed.");
   }
@@ -131,7 +128,7 @@ void loop() {
   }
   printForces();
   readHallEffects();
-  printTime();
+  //fix this printTime();
   myFile.println("");
   checkVoltage();
   monitorTemp();
@@ -169,7 +166,7 @@ void manageFile() {
 
 bool buttonIsPushed() {
   bool wasPushed = false;
-  int btn1 = analogRead(button1);
+  int btn1 = analogRead(buttonRecord);
   if (btn1 < 1000) {
     btnState1 = 1;//off
   } else {
@@ -221,7 +218,7 @@ String makeFileName() {
 
 void printForces() {
 
-  force1 = cell_1.measureForce() * 0.49;
+  int force1 = cell_1.measureForce() * 0.49;
   force2 = cell_2.measureForce() * 0.49;
 
   lcd.clear();
@@ -274,7 +271,7 @@ void readHallEffects(){
   Serial.print("\tRPM 1: ");
   Serial.print(rpm1);
   Serial.print("\tRPM 2: ");
-  Serial.println(rpm2);
+  Serial.print(rpm2);
   if (recording) {
     myFile.print(rpm1);
     myFile.print(",");
@@ -359,7 +356,7 @@ void monitorTemp() {
   float tempF = (tempC * 9 / 5) + 32;
   Serial.print("FAHRENHEIT: ");
   Serial.print(tempF);
-  Serial.println("*F");
+  Serial.print("*F");
 
   if (tempF > 80){
    digitalWrite(fanPin, HIGH); 
