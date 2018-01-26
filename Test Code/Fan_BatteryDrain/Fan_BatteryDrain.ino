@@ -37,10 +37,10 @@ void checkVoltage(){
   Serial.println(vIn, 2);
   
   if (vIn < batteryLimit){
-    analogWrite(motorPin, 255);
+    analogWrite(motorPin, 0);
     digitalWrite(LEDlowBattery, HIGH);
   }else{
-    analogWrite(motorPin, 0);
+    analogWrite(motorPin, 255);
     digitalWrite(LEDlowBattery, LOW);
   }
 }
