@@ -1,6 +1,6 @@
 /* Krystal Bernal
    CSULA Baja SAE
-   Last updated: 11/10/17
+   Last updated: 1/25/18
 
    -uses a button, MicroSD card breakout board, and a RTC to create and write to a timestamped .txt file
    that can be parsed as a .csv in excel
@@ -37,11 +37,11 @@
 //#define buttonPIN2 A7
 #define tempSensorPIN A14
 #define voltSensorPIN A11
-#define LEDsdRecording 11
-#define LEDsdDetect 10
+#define LEDsdRecording 10
+#define LEDsdDetect 11
 //#define LED5 12
-#define LEDlowBattery 1
-//#define LED4 
+#define LEDlowBattery 30
+//#define LED4
 
 #define servo1PIN 44
 #define servo2PIN 46
@@ -49,7 +49,6 @@
 
 RTC_Millis rtc;
 DateTime now;
-
 File myFile;
 String filename;
 
@@ -71,7 +70,6 @@ int force2;
 
 unsigned int rpm1 = 0;               // RPM value
 unsigned int rpm2 = 0;
-
 unsigned long oldTime1 = 0;          // time value
 unsigned long oldTime2 = 0;
 unsigned long intTime1 = 60000000;   // time intervals
@@ -82,26 +80,29 @@ int servPos1;             // servo positions
 int servPos2;
 
 void setup() {
-  pinMode(buttonRecord, INPUT_PULLUP);
-  pinMode(SD_CS, OUTPUT);
-  rtc.begin(DateTime(F(__DATE__) , F(__TIME__)));
   lcd.begin(16, 2);
   pinMode(fanPin, OUTPUT);
   analogWrite(fanPin, LOW);
   pinMode(LEDlowBattery, OUTPUT);
-  pinMode(LEDsdDetect, OUTPUT);
+  pinMode(LEDsdInitialized, OUTPUT);
   pinMode(LEDsdRecording, OUTPUT);
   pinMode(tempSensorPIN, INPUT);
   pinMode(voltSensorPIN, INPUT);
-  digitalWrite(LEDsdDetect, LOW);
+  digitalWrite(LEDsdInitialized, LOW);
   digitalWrite(LEDsdRecording, LOW);
   digitalWrite(LEDlowBattery, LOW);
-  attachInterrupt(5, magnet1, RISING);    // pin 18 = sensor1 input
-  attachInterrupt(4, magnet2, RISING);    // pin 19= sensor2 input
-  rpmServo1.attach(servo1PIN);                   // pin 44 = servo1 output
-  rpmServo2.attach(servo2PIN);                   // pin 45 = servo2 output
+  attachInterrupt(5, magnet1, RISING);    // pin 18 = interrupt 5
+  attachInterrupt(4, magnet2, RISING);    // pin 19 = interrupt 4
+  rpmServo1.attach(servo1PIN);
+  rpmServo2.attach(servo2PIN);
   rpmServo1.write(0);
   rpmServo2.write(0);
+  pinMode(buttonRecord, INPUT_PULLUP);
+  pinMode(SD_CS, OUTPUT);
+  rtc.begin(DateTime(F(__DATE__) , F(__TIME__)));
+  if (SD.begin(SD_CS)) {
+    digitalWrite(LED1, HIGH);
+  }
 }
 
 void loop() {
@@ -110,35 +111,27 @@ void loop() {
     manageFile();
   }
   readForces();
-  if (recording) {
-    
+  readHallEffects();
+  printTime(); if (recording) {
     myFile.println("");
   }
-  readHallEffects();
-  printTime();
   checkVoltage();
   monitorTemp();
 }
 
 void manageFile() {
   if (buttonPushCounter % 2 == 1) {//odd pushes begin writing to a new/existing file
-    if (SD.begin(SD_CS)) {//if the SD card initializes properly make a file
-      digitalWrite(LEDsdDetect, HIGH);
-      filename = makeFileName();
-      myFile = SD.open(filename, FILE_WRITE);
-      if (myFile) {//if the file was made properly
-        digitalWrite(LEDsdRecording, HIGH);
-        myFile.println("Force1,Type,HE1,HE2,RPM1,RPM2,Time"); //make sure heading matches values
-        recording = true;
-      } else {
-        digitalWrite(LEDsdRecording, LOW);
-        recording = false;
-      }
-    } else {//if the SD card doesn't initialize properly
-      digitalWrite(LEDsdDetect, LOW);
+    filename = makeFileName();
+    myFile = SD.open(filename, FILE_WRITE);
+    if (myFile) {//if the file was made properly
+      digitalWrite(LEDsdRecording, HIGH);
+      myFile.println("Force1,Type,HE1,HE2,RPM1,RPM2,Time"); //make sure heading matches values
+      recording = true;
+    } else {
+      digitalWrite(LEDsdRecording, LOW);
       recording = false;
     }
-  } else if (buttonPushCounter != 0) { //even pushes: close (save) the file
+  } else if (btnCounter1 % 2 == 0 && btnCounter1 > 0) { //even pushes: close (save) the file
     if (myFile) {
       myFile.close();
       digitalWrite(LEDsdRecording, LOW);
@@ -152,20 +145,21 @@ void manageFile() {
 
 bool buttonIsPushed() {
   bool wasPushed = false;
-  buttonState = digitalRead(buttonRecord);
-  if (buttonState != lastButtonState) {
-    if (buttonState == LOW) {
-      // if the current state is LOW then the button went from unpushed to pushed:
-      buttonPushCounter++;
+  int btn1 = analogRead(button1);
+  if (btn1 < 1000) {
+    btnState1 = 1;//off
+  } else {
+    btnState1 = 0;//on
+  }
+  if (btnState1 != lastBtnState1) {
+    if (btnState1 == 0) {
+      btnCounter1++;
       wasPushed = true;
-    } else {
-      // if the current state is LOW then the button went from on to off:
+      //reset button counter
     }
-    // Delay a little bit to avoid bouncing
     delay(50);
   }
-  // save the current state as the last state
-  lastButtonState = buttonState;
+  lastBtnState1 = btnState1;
   return wasPushed;
 }
 
@@ -228,26 +222,26 @@ void readForces() {
   lcd.setCursor(10, 1);
   lcd.print("NoConn");           // delete when reading load 2
   /*
-  String forceType2 = "";
-  lcd.print(abs(force2), DEC);
-  lcd.setCursor(4, 1);
-  if (force2 > 0) {
+    String forceType2 = "";
+    lcd.print(abs(force2), DEC);
+    lcd.setCursor(4, 1);
+    if (force2 > 0) {
     forceType2 = "T";
-  } else {
+    } else {
     forceType2 = "C";
-  }
-  lcd.print(forceType2);
-  if (recording) {
+    }
+    lcd.print(forceType2);
+    if (recording) {
     myFile.print(abs(force1), DEC);
     myFile.print(",");
     myFile.print(forceType2);
     myFile.print(",");
-  }
+    }
   */
   delay(50);
 }
 
-void readHallEffects(){
+void readHallEffects() {
   rpm1 = 60000000 / intTime1;   // rev/min = (60s/1min)*(60000ms/60s)*(1rev/timeIn(ms))
   rpm2 = 60000000 / intTime2;
 
@@ -325,8 +319,8 @@ void monitorTemp() {
   //converts celsius into fahrenheit
   tempF = (tempC * 9 / 5) + 32;
 
-  if (tempF > 80){
-   digitalWrite(fanPin, HIGH); 
+  if (tempF > 80) {
+    digitalWrite(fanPin, HIGH);
   }
 }
 

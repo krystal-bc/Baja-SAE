@@ -145,26 +145,24 @@ void manageFile() {
     myFile = SD.open(filename, FILE_WRITE);
     if (myFile) {//if the file was made properly
       digitalWrite(LEDsdRecording, HIGH);
-      Serial.print("\t...done.");
       Serial.print("Writing to " + filename);
-      myFile.print("testing");
+      myFile.println("Force1,Type,HE1,HE2,RPM1,RPM2,Time"); //make sure heading matches values
+      recording = true;
     } else {
       Serial.print("...could not create file.");
+      digitalWrite(LEDsdRecording, LOW);
+      recording = false;
     }
   } else if (btnCounter1 % 2 == 0 && btnCounter1 > 0) { //even pushes: close (save) the file, then reopen it to read its contents
     if (myFile) {
       myFile.close();
       digitalWrite(LEDsdRecording, LOW);
+      recording = false;
       Serial.println("...done.");
-      Serial.print("Opening " + filename);
-      myFile = SD.open(filename);
-      Serial.println("...done.");
-      while (myFile.available()) {// read from the file until there's nothing else in it
-        Serial.write(myFile.read());
-      }
-      myFile.close();
     } else {
       Serial.println("Error closing " + filename);
+      blinkLED(LEDsdRecording);
+      recording = false;
     }
   }
 }
