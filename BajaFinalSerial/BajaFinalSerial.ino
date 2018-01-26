@@ -361,6 +361,9 @@ void monitorTemp() {
   if (tempF > 80){
    digitalWrite(fanPin, HIGH); 
   }
+  else{
+    digitalWrite(fanPin, LOW);
+  }
 }
 
 void blinkLED(int LEDpin) {
