@@ -347,16 +347,16 @@ void monitorTemp() {
   float temperatureRaw = analogRead(tempSensorPIN);
   Serial.print("RAW: ");
   Serial.print(temperatureRaw);
-  //converts raw data into degrees celsius
-  float tempC = map(temperatureRaw,0,1024,-50,300);//find out range
-  Serial.print("\tCELSIUS: ");
-  Serial.print(tempC);
-  Serial.print("*C \t"); 
-  //converts celsius into fahrenheit
-  float tempF = (tempC * 9 / 5) + 32;
-  Serial.print("FAHRENHEIT: ");
+  //converts raw data into degrees fahrenheit
+  float tempF = ((5.0 * temperatureRaw * 100.0)/1024.0);
+  Serial.print("\tFAHRENHEIT: ");
   Serial.print(tempF);
-  Serial.print("*F");
+  Serial.print("°F \t"); 
+  //converts fahrenheit into celsius
+  float tempC = (tempF - 32) * (5.0/9.0);
+  Serial.print("CELSIUS: ");
+  Serial.print(tempC);
+  Serial.print("°C\t");
 
   if (tempF > 80){
    digitalWrite(fanPin, HIGH); 
