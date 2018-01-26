@@ -1,6 +1,6 @@
 /* Krystal Bernal
    CSULA Baja SAE
-   Last updated: 12/12/17
+   Last updated: 1/25/18
 
    -uses a button, MicroSD card breakout board, and a RTC to create and write to a timestamped .txt file
    that can be parsed as a .csv in excel
@@ -22,7 +22,7 @@
 
 */
 
-//TODO: integrate HE sensors/servos and update the write statements to SD card
+//TODO: update HE sensors/servos to display Speed and Ratio
 
 #include <WheatstoneBridge.h>
 #include <LiquidCrystal.h>
@@ -42,10 +42,10 @@
 //#define buttonPIN2 A7
 #define tempSensorPIN A14
 #define voltSensorPIN A11
-#define LEDsdRecording 11
-#define LEDsdDetect 10
+#define LEDsdRecording 10
+#define LEDsdInitialized 11
 //#define LED5 12
-#define LEDlowBattery 1
+#define LEDlowBattery 30
 //#define LED4 0
 
 #define servo1PIN 44
@@ -63,9 +63,9 @@ WheatstoneBridge cell_2(A1, 365, 675, 0, 1000);
 
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 
-int buttonPushCounter = 0;   // counter for the number of button presses
-int buttonState = 0;         // current state of the button
-int lastButtonState = 0;     // previous state of the button
+int btnCounter1 = 0;   // counter for the number of button presses
+int btnState1 = 0;         // current state of the button
+int lastBtnState1 = 0;     // previous state of the button
 
 int force1;
 int force2;
@@ -95,18 +95,15 @@ int servPos2;
 
 void setup() {
   Serial.begin(112500);
-  pinMode(buttonRecord, INPUT_PULLUP);
-  pinMode(SD_CS, OUTPUT);
-  rtc.begin(DateTime(F(__DATE__) , F(__TIME__)));
   lcd.begin(16, 2);
   pinMode(fanPin, OUTPUT);
   analogWrite(fanPin, LOW);
   pinMode(LEDlowBattery, OUTPUT);
-  pinMode(LEDsdDetect, OUTPUT);
+  pinMode(LEDsdInitialized, OUTPUT);
   pinMode(LEDsdRecording, OUTPUT);
   pinMode(tempSensorPIN, INPUT);
   pinMode(voltSensorPIN, INPUT);
-  digitalWrite(LEDsdDetect, LOW);
+  digitalWrite(LEDsdInitialized, LOW);
   digitalWrite(LEDsdRecording, LOW);
   digitalWrite(LEDlowBattery, LOW);
   attachInterrupt(5, magnet1, RISING);    // pin 18 = interrupt 5
@@ -115,7 +112,16 @@ void setup() {
   rpmServo2.attach(servo2PIN);
   rpmServo1.write(0);
   rpmServo2.write(0);
-
+  pinMode(buttonRecord, INPUT_PULLUP);
+  pinMode(SD_CS, OUTPUT);
+  rtc.begin(DateTime(F(__DATE__) , F(__TIME__)));
+  Serial.print("SD card initializing...");
+  if (SD.begin(SD_CS)) {
+    Serial.println("SD card is ready to use.");
+    digitalWrite(LED1, HIGH);
+  } else {
+    Serial.println("initialization failed.");
+  }
 }
 
 void loop() {
@@ -132,28 +138,20 @@ void loop() {
 }
 
 void manageFile() {
-  if (buttonPushCounter % 2 == 1) {//odd pushes begin writing to a new/existing file
-    Serial.print("SD card initializing...");
-    if (SD.begin(SD_CS)) {//if the SD card initializes properly make a file
-      digitalWrite(LEDsdDetect, HIGH);
-      Serial.print("SD card is ready to use. Making new file: ");
-      filename = makeFileName();
-      Serial.println(filename);
-      myFile = SD.open(filename, FILE_WRITE);
-      if (myFile) {//if the file was made properly
-        digitalWrite(LEDsdRecording, HIGH);
-        Serial.println("...done.");
-        Serial.print("Writing to " + filename);
-        myFile.println("Force1,Type,HE1,HE2,RPM1,RPM2,Time"); //make sure heading matches values
-      } else {
-        Serial.print("...could not create file.");
-        digitalWrite(LEDsdRecording, LOW);
-      }
-    } else {//if the SD card doesn't initialize properly
-      Serial.println("initialization failed.");
-      digitalWrite(LEDsdDetect, LOW);
+  if (btnCounter1 % 2 == 1) {//odd pushes begin writing to a new/existing file
+    Serial.print("Making new file: ");
+    filename = makeFileName();
+    Serial.print(filename);
+    myFile = SD.open(filename, FILE_WRITE);
+    if (myFile) {//if the file was made properly
+      digitalWrite(LEDsdRecording, HIGH);
+      Serial.print("\t...done.");
+      Serial.print("Writing to " + filename);
+      myFile.print("testing");
+    } else {
+      Serial.print("...could not create file.");
     }
-  } else if (buttonPushCounter != 0) { //even pushes: close (save) the file, then reopen it to read its contents
+  } else if (btnCounter1 % 2 == 0 && btnCounter1 > 0) { //even pushes: close (save) the file, then reopen it to read its contents
     if (myFile) {
       myFile.close();
       digitalWrite(LEDsdRecording, LOW);
@@ -167,31 +165,29 @@ void manageFile() {
       myFile.close();
     } else {
       Serial.println("Error closing " + filename);
-      blinkLED(LEDsdRecording);
     }
   }
 }
 
 bool buttonIsPushed() {
   bool wasPushed = false;
-  buttonState = digitalRead(buttonRecord);
-  if (buttonState != lastButtonState) {
-    if (buttonState == LOW) {
-      // if the current state is LOW then the button went from unpushed to pushed:
-      buttonPushCounter++;
+  int btn1 = analogRead(button1);
+  if (btn1 < 1000) {
+    btnState1 = 1;//off
+  } else {
+    btnState1 = 0;//on
+  }
+  if (btnState1 != lastBtnState1) {
+    if (btnState1 == 0) {
+      btnCounter1++;
       wasPushed = true;
-      Serial.println("on");
-      Serial.print("number of button pushes: ");
-      Serial.println(buttonPushCounter);
-    } else {
-      // if the current state is LOW then the button went from on to off:
-      Serial.println("off");
+      Serial.print("button 1 pressed: ");
+      Serial.println(btnCounter1);
+      //reset button counter
     }
-    // Delay a little bit to avoid bouncing
     delay(50);
   }
-  // save the current state as the last state
-  lastButtonState = buttonState;
+  lastBtnState1 = btnState1;
   return wasPushed;
 }
 
