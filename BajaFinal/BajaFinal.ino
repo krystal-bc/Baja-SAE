@@ -65,9 +65,6 @@ int buttonState = 0;         // current state of the button
 int lastButtonState = 0;     // previous state of the button
 bool recording;
 
-int force1;
-int force2;
-
 unsigned int rpm1 = 0;               // RPM value
 unsigned int rpm2 = 0;
 unsigned long oldTime1 = 0;          // time value
@@ -112,7 +109,8 @@ void loop() {
   }
   readForces();
   readHallEffects();
-  printTime(); if (recording) {
+  printTime(); 
+  if (recording) {
     myFile.println("");
   }
   checkVoltage();
@@ -195,8 +193,8 @@ String makeFileName() {
 
 void readForces() {
 
-  force1 = cell_1.measureForce() * 0.49;
-  force2 = cell_2.measureForce() * 0.49;
+  int force1 = cell_1.measureForce() * 0.49;
+  int force2 = cell_2.measureForce() * 0.49;
 
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -290,13 +288,13 @@ void printTime() {
   } else {
     currentTime += String(now.minute());
   }
-  currentTime += ",";
+  //include when adding new data fields currentTime += ",";
   myFile.print(currentTime);
 
 }
 
 void checkVoltage() {
-  float batteryLimit = 10;
+  float batteryLimit = 9.5;
   int voltageRaw = analogRead(voltSensorPIN);
   //values of the onboard resistors
   float R1 = 30000.0;
@@ -313,14 +311,14 @@ void checkVoltage() {
 }
 
 void monitorTemp() {
-  float rawTemp = analogRead(tempSensorPIN);
-  //converts raw data into degrees celsius and prints it out: 500mV/1024
-  tempC = map(rawTemp, 0, 1024, -50.0, 300.0);
-  //converts celsius into fahrenheit
-  tempF = (tempC * 9 / 5) + 32;
-
-  if (tempF > 80) {
-    digitalWrite(fanPin, HIGH);
+  float temperatureRaw = analogRead(tempSensorPIN);
+  //converts raw data into degrees fahrenheit
+  float tempF = ((5.0 * temperatureRaw * 100.0)/1024.0);
+  //keep threshold?
+  if (tempF > 80){
+   digitalWrite(fanPin, HIGH); 
+  } else{
+    digitalWrite(fanPin, LOW);
   }
 }
 

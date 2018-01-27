@@ -43,7 +43,7 @@
 #define tempSensorPIN A14
 #define voltSensorPIN A11
 #define LEDsdRecording 10
-#define LEDsdInitialized 11
+#define LEDsdInitialized 36
 //#define LED5 12
 #define LEDlowBattery 30
 //#define LED4 0
@@ -66,9 +66,6 @@ LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 int btnCounter1 = 0;   // counter for the number of button presses
 int btnState1 = 0;         // current state of the button
 int lastBtnState1 = 0;     // previous state of the button
-
-int force1;
-int force2;
 
 Servo rpmServo1;          // initialize servos
 Servo rpmServo2;
@@ -112,7 +109,7 @@ void setup() {
   pinMode(buttonRecord, INPUT_PULLUP);
   pinMode(SD_CS, OUTPUT);
   rtc.begin(DateTime(F(__DATE__) , F(__TIME__)));
-  Serial.print("SD card initializing...");
+  Serial.print("\nSD card initializing...");
   if (SD.begin(SD_CS)) {
     Serial.println("SD card is ready to use.");
     digitalWrite(LEDsdInitialized, HIGH);
@@ -128,22 +125,24 @@ void loop() {
   }
   printForces();
   readHallEffects();
-  //fix this printTime();
-  myFile.println("");
+  printTime();
+  if (recording) {
+    myFile.println("");
+  }
   checkVoltage();
   monitorTemp();
 }
 
 void manageFile() {
   if (btnCounter1 % 2 == 1) {//odd pushes begin writing to a new/existing file
-    Serial.print("Making new file: ");
+    Serial.print("\nMaking new file: ");
     filename = makeFileName();
     Serial.print(filename);
     myFile = SD.open(filename, FILE_WRITE);
     if (myFile) {//if the file was made properly
       digitalWrite(LEDsdRecording, HIGH);
       Serial.print("Writing to " + filename);
-      myFile.println("Force1,Type,HE1,HE2,RPM1,RPM2,Time"); //make sure heading matches values
+      myFile.println("Force1,Type,HE1,HE2,Time"); //make sure heading matches values
       recording = true;
     } else {
       Serial.print("...could not create file.");
@@ -176,7 +175,7 @@ bool buttonIsPushed() {
     if (btnState1 == 0) {
       btnCounter1++;
       wasPushed = true;
-      Serial.print("button 1 pressed: ");
+      Serial.print("\nbutton 1 pressed: ");
       Serial.println(btnCounter1);
       //reset button counter
     }
@@ -219,7 +218,7 @@ String makeFileName() {
 void printForces() {
 
   int force1 = cell_1.measureForce() * 0.49;
-  force2 = cell_2.measureForce() * 0.49;
+  int force2 = cell_2.measureForce() * 0.49;
 
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -272,6 +271,7 @@ void readHallEffects(){
   Serial.print(rpm1);
   Serial.print("\tRPM 2: ");
   Serial.print(rpm2);
+  Serial.print("\t");
   if (recording) {
     myFile.print(rpm1);
     myFile.print(",");
@@ -318,13 +318,16 @@ void printTime() {
   } else {
     currentTime += String(now.minute());
   }
-  currentTime += ",";
-  myFile.print(currentTime);
+  //include when adding new data fields currentTime += ",";
+  if(recording){
+    myFile.print(currentTime);
+  }
+  
 
 }
 
 void checkVoltage() {
-  float batteryLimit = 10;
+  float batteryLimit = 9.5;
   int voltageRaw = analogRead(voltSensorPIN);
   //values of the onboard resistors
   float R1 = 30000.0;
@@ -352,16 +355,19 @@ void monitorTemp() {
   Serial.print("\tFAHRENHEIT: ");
   Serial.print(tempF);
   Serial.print("°F \t"); 
+  /*
+   * delete?
   //converts fahrenheit into celsius
   float tempC = (tempF - 32) * (5.0/9.0);
   Serial.print("CELSIUS: ");
   Serial.print(tempC);
   Serial.print("°C\t");
+  */
 
+  //keep threshold?
   if (tempF > 80){
    digitalWrite(fanPin, HIGH); 
-  }
-  else{
+  } else{
     digitalWrite(fanPin, LOW);
   }
 }
