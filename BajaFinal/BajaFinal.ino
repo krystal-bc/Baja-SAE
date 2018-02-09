@@ -1,25 +1,32 @@
 /* Krystal Bernal
    CSULA Baja SAE
-   Last updated: 1/25/18
-
+   Last updated: 2/8/18
    -uses a button, MicroSD card breakout board, and a RTC to create and write to a timestamped .txt file
    that can be parsed as a .csv in excel
    -reads forces in lbs from load cells
    -2 hall effect sensors to calculate RPM for drive and driven, displays them on 180 degree servos
    -controls a fan using a temperature sensor
    -LED indicators
-
+   
    SD Card Wiring
    CLK to pin 52
    DO to pin 50
    DI to pin 51
    CS to pin 53
-
+   
    RTC Wiring
    SDA to Arduino SDA (communication pin 20)
    SCL to Arduino SCL (communication pin 21)
    omit SQW
+   
+   LCD uses A0, D4-10  *A0 not in use
+   Wheatstone Bridge uses A0,A1
 
+   LED1 (11)
+   LED2 (10)*
+   LED3 (30)
+   LED4 (36)
+   LED5 (12)
 */
 
 //TODO: designate HE/Servos to speed and ratio, update the write statements to SD card, fix range for temperature sensor
@@ -39,8 +46,8 @@
 #define voltSensorPIN A11
 #define LEDsdRecording 10
 #define LEDsdDetect 11
-//#define LED5 12
 #define LEDlowBattery 30
+//#define LED5 12
 //#define LED4
 
 #define servo1PIN 44
@@ -49,6 +56,7 @@
 
 RTC_Millis rtc;
 DateTime now;
+
 File myFile;
 String filename;
 
@@ -73,8 +81,8 @@ unsigned long intTime1 = 60000000;   // time intervals
 unsigned long intTime2 = 60000000;
 int noAction = 0;
 
-int servPos1;             // servo positions
-int servPos2;
+float servPos1;             // servo positions
+float servPos2;
 
 void setup() {
   lcd.begin(16, 2);
@@ -98,7 +106,7 @@ void setup() {
   pinMode(SD_CS, OUTPUT);
   rtc.begin(DateTime(F(__DATE__) , F(__TIME__)));
   if (SD.begin(SD_CS)) {
-    digitalWrite(LED1, HIGH);
+    digitalWrite(LEDsdInitialized, HIGH);
   }
 }
 
@@ -123,7 +131,7 @@ void manageFile() {
     myFile = SD.open(filename, FILE_WRITE);
     if (myFile) {//if the file was made properly
       digitalWrite(LEDsdRecording, HIGH);
-      myFile.println("Force1,Type,HE1,HE2,RPM1,RPM2,Time"); //make sure heading matches values
+      myFile.println("Force1,Type,HE1,HE2,RPM1,RPM2,MPH,Ratio,Time"); //make sure heading matches values
       recording = true;
     } else {
       digitalWrite(LEDsdRecording, LOW);
@@ -158,6 +166,7 @@ bool buttonIsPushed() {
     delay(50);
   }
   lastBtnState1 = btnState1;
+  //reset button counter
   return wasPushed;
 }
 
@@ -249,14 +258,24 @@ void readHallEffects() {
     noAction = 11;                        // prevent overflow of int
   }
 
-  servPos1 = map(rpm1, 100, 1800, 160, 0);    // Servo1 range: 0 - 170
-  servPos2 = map(rpm2, 100, 1800, 180, 20);   // Servo2 range: 20 - 180
-  rpmServo1.write(servPos1);                  // set Servo1 to adjusted position
-  rpmServo2.write(servPos2);                  // set Servo2 to adjusted position
+  float mph = rpm2*0.43211;
+  servPos1 = map(rpm2, 0, mph, 180, 0);
+  rpmServo1.write(servPos1);
+  float ratio = rpm1/rpm2;
+  if (ratio > 4){
+    ratio = 4;
+  }
+  servPos2 = map(rpm2, 0, ratio, 180, 0);
+  rpmServo2.write(servPos2);
+  
   if (recording) {
     myFile.print(rpm1);
     myFile.print(",");
     myFile.print(rpm2);
+    myFile.print(",");
+    myFile.print(mph);
+    myFile.print(",");
+    myFile.print(ratio);
     myFile.print(",");
   }
 
@@ -290,7 +309,6 @@ void printTime() {
   }
   //include when adding new data fields currentTime += ",";
   myFile.print(currentTime);
-
 }
 
 void checkVoltage() {

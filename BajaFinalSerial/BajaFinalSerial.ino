@@ -1,6 +1,6 @@
 /* Krystal Bernal
    CSULA Baja SAE
-   Last updated: 1/25/18
+   Last updated: 2/8/18
 
    -uses a button, MicroSD card breakout board, and a RTC to create and write to a timestamped .txt file
    that can be parsed as a .csv in excel
@@ -20,9 +20,17 @@
    SCL to Arduino SCL (communication pin 21)
    omit SQW
 
+  LCD uses A0, D4-10  *A0 not in use
+   Wheatstone Bridge uses A0,A1
+
+   LED1 (11)
+   LED2 (10)*
+   LED3 (30)
+   LED4 (36)
+   LED5 (12)
 */
 
-//TODO: update HE sensors/servos to display Speed and Ratio
+//TODO: update HE sensors/servos to display Speed
 
 #include <WheatstoneBridge.h>
 #include <LiquidCrystal.h>
@@ -43,10 +51,10 @@
 #define tempSensorPIN A14
 #define voltSensorPIN A11
 #define LEDsdRecording 10
-#define LEDsdInitialized 36
-//#define LED5 12
+#define LEDsdDetect 11
 #define LEDlowBattery 30
-//#define LED4 0
+//#define LED5 12
+//#define LED4
 
 #define servo1PIN 44
 #define servo2PIN 46
@@ -123,7 +131,7 @@ void loop() {
   if (buttonIsPushed()) {
     manageFile();
   }
-  printForces();
+  readForces();
   readHallEffects();
   printTime();
   if (recording) {
@@ -142,7 +150,7 @@ void manageFile() {
     if (myFile) {//if the file was made properly
       digitalWrite(LEDsdRecording, HIGH);
       Serial.print("Writing to " + filename);
-      myFile.println("Force1,Type,HE1,HE2,Time"); //make sure heading matches values
+      myFile.println("Force1,Type,HE1,HE2,RPM1,RPM2,MPH,Ratio,Time"); //make sure heading matches values
       recording = true;
     } else {
       Serial.print("...could not create file.");
@@ -215,7 +223,7 @@ String makeFileName() {
   return file;
 }
 
-void printForces() {
+void readForces() {
 
   int force1 = cell_1.measureForce() * 0.49;
   int force2 = cell_2.measureForce() * 0.49;
@@ -264,20 +272,9 @@ void printForces() {
   delay(50);
 }
 
-void readHallEffects(){
+void readHallEffects() {
   rpm1 = 60000000 / intTime1;   // rev/min = (60s/1min)*(60000ms/60s)*(1rev/timeIn(ms))
   rpm2 = 60000000 / intTime2;
-  Serial.print("\tRPM 1: ");
-  Serial.print(rpm1);
-  Serial.print("\tRPM 2: ");
-  Serial.print(rpm2);
-  Serial.print("\t");
-  if (recording) {
-    myFile.print(rpm1);
-    myFile.print(",");
-    myFile.print(rpm2);
-    myFile.print(",");
-  }
 
   if (noAction > 10) {                    // if 10 loops pass with no magnetic detection
     rpm1 = 0;                             // reset servo positions to 0
@@ -285,14 +282,39 @@ void readHallEffects(){
     noAction = 11;                        // prevent overflow of int
   }
 
-  servPos1 = map(rpm1, 100, 1800, 160, 0);    // Servo1 range: 0 - 170
-  servPos2 = map(rpm2, 100, 1800, 180, 20);   // Servo2 range: 20 - 180
-  rpmServo1.write(servPos1);                  // set Servo1 to adjusted position
-  rpmServo2.write(servPos2);                  // set Servo2 to adjusted position
+  float mph = rpm2*0.43211;
+  servPos1 = map(rpm2, 0, mph, 180, 0);
+  rpmServo1.write(servPos1);
+  float ratio = rpm1/rpm2;
+  if (ratio > 4){
+    ratio = 4;
+  }
+  servPos2 = map(rpm2, 0, ratio, 180, 0);
+  rpmServo2.write(servPos2);
+  
+  Serial.print("\tRPM 1: ");
+  Serial.print(rpm1);
+  Serial.print("\tRPM 2: ");
+  Serial.print(rpm2);
+  Serial.print("\tMPH: ");
+  Serial.print(mph);
+  Serial.print("\tRatio: ");
+  Serial.print(ratio);
+  Serial.print("\t");
+  
+  if (recording) {
+    myFile.print(rpm1);
+    myFile.print(",");
+    myFile.print(rpm2);
+    myFile.print(",");
+    myFile.print(mph);
+    myFile.print(",");
+    myFile.print(ratio);
+    myFile.print(",");
+  }
 
   noAction++;
 }
-
 void magnet1() {                              // when magnet is detected
   intTime1 = micros() - oldTime1;             // update time interval
   oldTime1 = micros();                        // update starting point for timer1
