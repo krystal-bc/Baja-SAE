@@ -1,6 +1,6 @@
 /* Krystal Bernal
    CSULA Baja SAE
-   Last updated: 2/8/18
+   Last updated: 2/21/18
 
    -uses a button, MicroSD card breakout board, and a RTC to create and write to a timestamped .txt file
    that can be parsed as a .csv in excel
@@ -50,11 +50,11 @@
 //#define buttonPIN2 A7
 #define tempSensorPIN A14
 #define voltSensorPIN A11
-#define LEDsdRecording 10
-#define LEDsdDetect 11
+#define LEDsdRecording 34
+#define LEDsdInitialized 11
 #define LEDlowBattery 30
 //#define LED5 12
-//#define LED4
+//#define LED4 36
 
 #define servo1PIN 44
 #define servo2PIN 46
@@ -92,8 +92,8 @@ unsigned long intTime1 = 60000000;   // time intervals
 unsigned long intTime2 = 60000000;
 int noAction = 0;
 
-int servPos1;             // servo positions
-int servPos2;
+float servPos1;             // servo positions
+float servPos2;
 
 void setup() {
   Serial.begin(112500);
@@ -249,12 +249,12 @@ void readForces() {
     Serial.print(" C\t");
     myFile.print(", C,");
   }
-
+  /*
   lcd.setCursor(10, 1);           // tab indent
   Serial.print("Load2: ");
   lcd.print("NoConn");           // delete when reading load 2
   Serial.print("NoConn");
-  /*
+  
   lcd.print(abs(force2),DEC);
   lcd.setCursor(15,1);
   Serial.print(abs(force2));
@@ -275,6 +275,11 @@ void readForces() {
 void readHallEffects() {
   rpm1 = 60000000 / intTime1;   // rev/min = (60s/1min)*(60000ms/60s)*(1rev/timeIn(ms))
   rpm2 = 60000000 / intTime2;
+  
+  Serial.print("\tRPM 1: ");
+  Serial.print(rpm1);
+  Serial.print("\tRPM 2: ");
+  Serial.print(rpm2);
 
   if (noAction > 10) {                    // if 10 loops pass with no magnetic detection
     rpm1 = 0;                             // reset servo positions to 0
@@ -282,25 +287,20 @@ void readHallEffects() {
     noAction = 11;                        // prevent overflow of int
   }
 
-  float mph = rpm2*0.43211;
-  servPos1 = map(rpm2, 0, mph, 180, 0);
-  rpmServo1.write(servPos1);
+  float mph = rpm2*0.008818;
+  servPos1 = map(mph, 0, 40, 179, 0);
+  rpmServo2.write(servPos1);
   float ratio = rpm1/rpm2;
-  if (ratio > 4){
-    ratio = 4;
+  if (ratio > 400){
+    ratio = 400;
   }
-  servPos2 = map(rpm2, 0, ratio, 180, 0);
-  rpmServo2.write(servPos2);
-  
-  Serial.print("\tRPM 1: ");
-  Serial.print(rpm1);
-  Serial.print("\tRPM 2: ");
-  Serial.print(rpm2);
-  Serial.print("\tMPH: ");
+  servPos2 = map(ratio, 0.5, 4.0, 179, 0);
+  rpmServo1.write(servPos2);
+
+  Serial.print("mph: ");
   Serial.print(mph);
-  Serial.print("\tRatio: ");
-  Serial.print(ratio);
-  Serial.print("\t");
+  Serial.print("\tratio: ");
+  Serial.println(ratio);
   
   if (recording) {
     myFile.print(rpm1);
@@ -358,8 +358,8 @@ void checkVoltage() {
   float vOut = (voltageRaw * 5.0) / 1024.0;
   float vIn = vOut / (R2 / (R1 + R2));
 
-  Serial.print("Voltage: ");
-  Serial.println(vIn, 2);
+  Serial.print("V: ");
+  Serial.print(vIn, 3);
 
   if (vIn < batteryLimit) {
     digitalWrite(LEDlowBattery, HIGH);
@@ -370,13 +370,11 @@ void checkVoltage() {
 
 void monitorTemp() {
   float temperatureRaw = analogRead(tempSensorPIN);
-  Serial.print("RAW: ");
-  Serial.print(temperatureRaw);
   //converts raw data into degrees fahrenheit
   float tempF = ((5.0 * temperatureRaw * 100.0)/1024.0);
-  Serial.print("\tFAHRENHEIT: ");
-  Serial.print(tempF);
-  Serial.print("°F \t"); 
+  //Serial.print("\tFAHRENHEIT: ");
+  //Serial.print(tempF);
+  //Serial.print("°F \t"); 
   /*
    * delete?
   //converts fahrenheit into celsius
