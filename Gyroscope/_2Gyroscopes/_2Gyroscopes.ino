@@ -4,6 +4,8 @@
  */
  
 #include <Adafruit_L3GD20_U.h>
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
 
 #define CLK 13       //SCL
 #define DO 12        //SA0
@@ -28,13 +30,15 @@ void setup(){
 
 void loop(){
   gyro1.read();
-  Serial.print("X: "); Serial.print((int)gyro1.data.x);   Serial.print(" ");
-  Serial.print("\tY: "); Serial.print((int)gyro1.data.y);   Serial.print(" ");
-  Serial.print("\tZ: "); Serial.println((int)gyro1.data.z); Serial.print(" ");
+  Serial.print("X: "); Serial.print((int)gyro1.data.x);
+  Serial.print("   Y: "); Serial.print((int)gyro1.data.y);
+  Serial.print("   Z: "); Serial.print((int)gyro1.data.z);
 
   gyro2.read();
-  Serial.print("X: "); Serial.print((int)gyro2.data.x);   Serial.print(" ");
-  Serial.print("\tY: "); Serial.print((int)gyro2.data.y);   Serial.print(" ");
-  Serial.print("\tZ: "); Serial.println((int)gyro2.data.z); Serial.print(" ");
+  Serial.print("      X: "); Serial.print((int)gyro2.data.x);
+  Serial.print("\tY: "); Serial.print((int)gyro2.data.y);
+  Serial.print("\tZ: "); Serial.print((int)gyro2.data.z);
+  
+  Serial.println();
   delay(10);
 }

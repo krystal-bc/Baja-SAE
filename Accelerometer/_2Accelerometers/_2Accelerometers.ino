@@ -14,8 +14,8 @@
 #define CLK 13
 #define MISO 12
 #define MOSI 11
-#define Acc1_CS 5
-#define Acc2_CS 6
+#define Acc1_CS 10
+#define Acc2_CS 9
 
 Adafruit_LIS3DH acc1 = Adafruit_LIS3DH(Acc1_CS, MOSI, MISO, CLK);
 Adafruit_LIS3DH acc2 = Adafruit_LIS3DH(Acc2_CS, MOSI, MISO, CLK);
@@ -42,12 +42,13 @@ void setup(void) {
 
 void loop() {
   acc1.read();
+  acc2.read();
   
   sensors_event_t event1; 
   acc1.getEvent(&event1);
 
   sensors_event_t event2; 
-  acc1.getEvent(&event2);
+  acc2.getEvent(&event2);
   
   /* Display the results (acceleration is measured in m/s^2) */
   Serial.print("X: "); Serial.print(event1.acceleration.x);
