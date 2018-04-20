@@ -1,17 +1,12 @@
 /* Krystal Bernal
-    Last Updated: 4/19/2018
-
-    This program reads data from two LIS3DH accelerometers and saves data to a microSD card
-
-    microSD needs its own set of communication pins
-    SCK = 13
-    DO = 12
-    DI = 11
-    
-    
-
-    https://learn.adafruit.com/adafruit-lis3dh-triple-axis-accelerometer-breakout/wiring-and-test
-*/
+ *  Last Updated: 4/19/2018
+ *  This program reads data from two LIS3DH accelerometers and saves data to a microSD card
+ *  
+ *  microSD needs its own set of communication pins
+ *  SCK = 13
+ *  DO = 12
+ *  DI = 11
+ */
 
 #include <Wire.h>
 #include <SPI.h>
@@ -20,9 +15,9 @@
 #include <Adafruit_Sensor.h>
 
 #define SD_CS 10
-#define Accel_CLK 9 //SCL
-#define Accel_DO 8  //SA0
-#define Accel_DI 7  //SDA
+#define Accel_CLK 9 // SCL
+#define Accel_DO 8  // SA0/SDO
+#define Accel_DI 7  // SDA
 #define Acc1_CS 5
 #define Acc2_CS 3
 
@@ -33,7 +28,6 @@ File myFile;
 bool record;
 
 long time;
-long seconds;
 
 #if defined(ARDUINO_ARCH_SAMD)
   #define Serial SerialUSB
@@ -94,8 +88,7 @@ void readAccel() {
   sensors_event_t event2;
   acc2.getEvent(&event2);
 
-  if (myFile) {
-    record = true;
+  if (record) {
     myFile.print(event1.acceleration.x);
     myFile.print(",");
     myFile.print(event1.acceleration.y);
