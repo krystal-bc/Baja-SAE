@@ -1,24 +1,25 @@
-// Basic demo for accelerometer readings from Adafruit LIS3DH
-//https://learn.adafruit.com/adafruit-lis3dh-triple-axis-accelerometer-breakout/wiring-and-test
+/* Krystal Bernal
+ * Last Updated: 4/19/2018
+ * This program uses SPI to read data from an LIS3DH accelerometer
+ * https://learn.adafruit.com/adafruit-lis3dh-triple-axis-accelerometer-breakout/wiring-and-test
+*/
 
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_LIS3DH.h>
 #include <Adafruit_Sensor.h>
 
-// Used for software SPI
-//#define LIS3DH_CLK 13
-//#define LIS3DH_MISO 12
-//#define LIS3DH_MOSI 11
-// Used for hardware & software SPI
-#define LIS3DH_CS 10
+#define Accel_CLK 9 //SCL
+#define Accel_DO 8  //SA0
+#define Accel_DI 7  //SDA
+#define Acc1_CS 5
 
 // software SPI
-//Adafruit_LIS3DH lis = Adafruit_LIS3DH(LIS3DH_CS, LIS3DH_MOSI, LIS3DH_MISO, LIS3DH_CLK);
+Adafruit_LIS3DH acc1 = Adafruit_LIS3DH(Acc1_CS, Accel_DI, Accel_DO, Accel_CLK);
 // hardware SPI
 //Adafruit_LIS3DH lis = Adafruit_LIS3DH(LIS3DH_CS);
 // I2C
-Adafruit_LIS3DH lis = Adafruit_LIS3DH();
+//Adafruit_LIS3DH lis = Adafruit_LIS3DH();
 
 #if defined(ARDUINO_ARCH_SAMD)
    #define Serial SerialUSB
@@ -27,12 +28,14 @@ Adafruit_LIS3DH lis = Adafruit_LIS3DH();
 void setup(void) {
   Serial.begin(9600);
   
-  if (! lis.begin(0x18)) {   // change this to 0x19 for alternative i2c address
-    Serial.println("Error initializing accelerometer");
-    while (1);
+  if (!acc1.begin()) {
+    Serial.println("Error initializing accelerometer 1.");
+    while(1);
+  } else {
+    Serial.println("Acc initialized...");
   }
   
-  lis.setRange(LIS3DH_RANGE_4_G);   // 2, 4, 8 or 16 G!
+  lis.setRange(LIS3DH_RANGE_4_G);   // 2, 4, 8 or 16 G
   
   Serial.print("Range = "); Serial.print(2 << lis.getRange());  
   Serial.println("G");

@@ -1,7 +1,7 @@
 /*  Krystal Bernal
- *  Last Updated: 3/29/2018
+ *  Last Updated: 4/19/2018
  *  
- *  This program reads data from two accelerometers
+ *  This program reads data from two LIS3DH accelerometers
  *  
  *  https://learn.adafruit.com/adafruit-lis3dh-triple-axis-accelerometer-breakout/wiring-and-test
  */
@@ -11,11 +11,11 @@
 #include <Adafruit_LIS3DH.h>
 #include <Adafruit_Sensor.h>
 
-#define CLK 13
-#define MISO 12
-#define MOSI 11
-#define Acc1_CS 10
-#define Acc2_CS 9
+#define CLK 9
+#define MISO 8
+#define MOSI 7
+#define Acc1_CS 5
+#define Acc2_CS 3
 
 Adafruit_LIS3DH acc1 = Adafruit_LIS3DH(Acc1_CS, MOSI, MISO, CLK);
 Adafruit_LIS3DH acc2 = Adafruit_LIS3DH(Acc2_CS, MOSI, MISO, CLK);

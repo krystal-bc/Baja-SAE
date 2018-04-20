@@ -1,17 +1,17 @@
 /*  Krystal Bernal
- *  Last Updated: 3/29/18
+ *  Last Updated: 4/19/18
  *  This code uses SPI communication to read two L3GD20H 3-Axis Gyroscopes
  */
- 
+
 #include <Adafruit_L3GD20_U.h>
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 
-#define CLK 13       //SCL
-#define DO 12        //SA0
-#define DI 11        //SDA
-#define gyro1_CS 8   //CS1
-#define gyro2_CS 7   //CS2
+#define CLK 9   //SCL
+#define DO 8    //SA0
+#define DI 7   //SDA
+#define gyro1_CS 6
+#define gyro2_CS 4
 
 Adafruit_L3GD20 gyro1 = Adafruit_L3GD20(gyro1_CS, DO, DI, CLK);
 Adafruit_L3GD20 gyro2 = Adafruit_L3GD20(gyro2_CS, DO, DI, CLK);
