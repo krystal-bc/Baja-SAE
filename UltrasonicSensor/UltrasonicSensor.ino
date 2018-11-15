@@ -10,24 +10,33 @@
  *  to return.  The length of the returning pulse is proportional to 
  *  the distance of the object from the sensor.
  */
+#include <SPI.h>
+#include <SD.h>
 
-
-#define trigPin 8
+#define SD_CS 10
 #define echoPin 9
+#define trigPin 8
+//#define LED 7
+
+File myFile;
 
 long duration;
 float inches;
 
 void setup() {
   Serial.begin(9600);
+
+  if (SD.begin(SD_CS)) {
+    //digitalWrite(LED, LOW);
+    myFile = SD.open("Ultrasonic.txt", FILE_WRITE);
+    if (myFile) {
+      myFile.println("micros, inches");
+    }
+  }
 }
 
-void loop()
-{
-  // establish variables for duration of the ping, 
-  // and the distance result in inches and centimeters:
+void loop(){
   
-
   // The sensor is triggered by a HIGH pulse of 10 or more microseconds.
   // Give a short LOW pulse beforehand to ensure a clean HIGH pulse:
   pinMode(trigPin, OUTPUT);
@@ -45,15 +54,21 @@ void loop()
 
   // convert the time into a distance
   inches = microsecondsToInches(duration);
+//
+//  Serial.print(micros());
+//  Serial.print("   ");
+//  Serial.print(inches);
+//  Serial.print("in");
+//  Serial.println();
 
-  Serial.print(micros());
-  Serial.print("   ");
-  Serial.print(inches);
-  Serial.print("in ");
-//  Serial.print(cm);
-//  Serial.print("cm");
-  Serial.println();
-  
+  myFile = SD.open("BAJADATA.txt", FILE_WRITE);
+  if (myFile) {
+    myFile.print(micros());
+    myFile.print(",");
+    myFile.print(inches);
+    myFile.println();
+    myFile.close();
+  }
   delay(100);
 }
 
