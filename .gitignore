@@ -1,4 +1,6 @@
+.DS_Store
 *.txt
+
+#vim files
 *.swp
 *.swo
-.DS_Store
