@@ -1,82 +1,71 @@
 # Import required libraries
-import time
-import datetime
+import time, sched, datetime, csv
 import RPi.GPIO as GPIO
 from multiprocessing import Pool
-#import threading
 
 pool = Pool() #Multithreading
 
+### TODO RECORD MEANINGFUL DATA TODO ###
 he_recs = [] #For recodation of data
 counter = 0 #Revolution count, used to calculate RPM
-startTime = time.time() #Record start time, used to calculate RPM
-trigger = True #Keep track of multiple zero values
 
 
 
-def getTime():
+def getRevPer():
+	### TODO WRITE INTO FILE IN TIME INTERVALS; PREVENT DATA LOSS TODO ###
 	while(True):
-		global counter
-		global startTime
-		global trigger
-	
-		endTime = time.time()
+		### TODO CALCULATE RPM PER SECOND TODO ###
+		'''
+			To calculate RPM in seconds:
+			 -Measure RPM then divide by 60(?)
+		'''
+		perSec = sched.scheduler(time.time, time.sleep)
 
-		#print("startTime:", startTime, "\tendTime:", endTime,\
-		# "\tMin?", int(((endTime - startTime) % 60)))
+		def revPerSec(x): #@x is perSec passed by value
+			global counter
+			rps = ((counter / 60.0) / 60.0)
 
-		if((int((endTime - startTime) % 60) == 0) & trigger):
-			trigger = False
-			print("A minute has passed.")
-			print("RPM:", (counter / 60.0))
-			startTime = endTime
-			counter = 0
+			if(counter > 0):
+				print("RPS (Rev. per sec.):", rps)
+				counter = 0 #Reset rev count
+			else:
+				print("RPS (Rev. per sec.): 0.0")
+				counter = 0 #Reset rev count
 
-		elif(int((endTime - startTime) % 60) & (not trigger)): #Reset zero value trigger
-			trigger = True
-	
-		#if((counter > 0) & (((endTime - startTime) % 60.0) == 0)):
-		#	rpm = (counter /  60.0) #Divide by 60 for sec
-		#	startTime = endTime
-		#	print("RPM:", str(rpm))
-		#	counter = 0 #Reset revolution count
-		#else:
-		#	print("RPM:", str(0))
+			csvfile = open('he_results.csv', 'a')
+			#with open('he_results.csv', 'w', newline='') as csvfile:
+			with csvfile:
+				fieldNames = ['Rev. per sec.', 'Time']
+				writer = csv.DictWriter(csvfile, fieldnames = fieldNames)
+
+				writer.writeheader()
+				writer.writerow({'Rev. per sec.': str(rps), 'Time':\
+				 ### TODO COMPUTE PROPER TIME TODO ###
+				 str(datetime.timedelta(time.time() / 52.14 / 24 / 60 / 60))})
+
+			perSec.enter(1, 1, revPerSec, (x, )) #TODO Figure out parameters of `.enter(...)`
+
+		perSec.enter(1, 1, revPerSec, (perSec, ))
+		perSec.run()
 
 
 
 def sensorCallback(channel):
 	global counter
-
-	###Called if sensor output changes
-	###XXX POSSIBLY DEPRECATED XXX
-	#timestamp = time.time()
-	#stamp = datetime.datetime.fromtimestamp(timestamp)\
-	# .strftime('%H:%M:%S')
-
  
 	###Measuring magnet's top/bottom
+	### TODO RECORD MEANINGFUL DATA TODO ###
 	if GPIO.input(channel):
 		### Write to file ###
 		#print("Sensor HIGH " + stamp)
 		#he_recs.append(str(stamp))
 
-		print("Count: ", str(counter))
 		###XXX DEPRECATED XXX
 		#he_recs.append(str(counter) + "\t")
+
+		print("Count: ", str(counter)) #Just to keep track of revolution count
 		counter += 1
 
-	###Measuring magnet's sides
-	else:
-		### Write to file ###
-		#print("Sensor LOW " + stamp)
-		#he_recs.append(str(stamp))
-
-		print("Not counted, count is still: ", str(counter))
-		###XXX DEPRECATED XXX
-		#he_recs.append(str(counter) + "\t")
-
-	#print("sensorCallback(channel) is running asynchronously.")
 
 
 def record():
@@ -103,21 +92,8 @@ def record():
 
 
 def main():
-	#global time
-	#time = time.time()
-
-	###XXX Possibly deprecated XXX
-	#res1 = pool.apply_async(getTime())
-	#res2 = pool.apply_async(record())
-	#ans1 = res1.get(timeout=10)
-	#ans2 = res2.get(timeout=10)
-	#print("ans1:", str(ans1), "\nans2:", str(ans2))
-
-	###XXX OG XXX
-	#record()
-
-	###XXX TEST XXX
-	pool.apply_async(getTime())
+	### Async time tracker and rev counter
+	pool.apply_async(getRevPer())
 	pool.apply_async(record())
 
 
