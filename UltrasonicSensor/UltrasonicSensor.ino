@@ -18,19 +18,24 @@
 #define trigPin 8
 //#define LED 7
 
+
 File myFile;
 
 long duration;
 float inches;
 
 void setup() {
-  Serial.begin(9600);
-
+  //Serial.begin(9600);
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  
   if (SD.begin(SD_CS)) {
     //digitalWrite(LED, LOW);
-    myFile = SD.open("Ultrasonic.txt", FILE_WRITE);
+    //Serial.println("SD initialized");
+    myFile = SD.open("ULTRASNC.txt", FILE_WRITE);
     if (myFile) {
       myFile.println("micros, inches");
+      //Serial.println("File accessed");
     }
   }
 }
@@ -39,7 +44,7 @@ void loop(){
   
   // The sensor is triggered by a HIGH pulse of 10 or more microseconds.
   // Give a short LOW pulse beforehand to ensure a clean HIGH pulse:
-  pinMode(trigPin, OUTPUT);
+  
   digitalWrite(trigPin, LOW);
   delayMicroseconds(2);
   digitalWrite(trigPin, HIGH);
@@ -49,19 +54,19 @@ void loop(){
   // Read the signal from the sensor: a HIGH pulse whose
   // duration is the time (in microseconds) from the sending
   // of the ping to the reception of its echo off of an object.
-  pinMode(echoPin, INPUT);
+  
   duration = pulseIn(echoPin, HIGH);
 
   // convert the time into a distance
   inches = microsecondsToInches(duration);
-//
+
 //  Serial.print(micros());
 //  Serial.print("   ");
 //  Serial.print(inches);
 //  Serial.print("in");
 //  Serial.println();
 
-  myFile = SD.open("BAJADATA.txt", FILE_WRITE);
+  myFile = SD.open("ULTRASNC.txt", FILE_WRITE);
   if (myFile) {
     myFile.print(micros());
     myFile.print(",");
