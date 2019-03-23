@@ -1,7 +1,7 @@
 /*
    Krystal Bernal
    CSULA Baja SAE
-   Last Updated: 8/16/18
+   Last Updated: 3/22/19
 
    This code uses hall effect sensors and revolving magnets as tachometers for
    reading rpm of drive and driven on a CVT. Ratio is used for tuning.
@@ -9,6 +9,7 @@
    Previous code used built-in Arduino interrupt, but was unreliable. According to Arduino's
    documentation: "millis() relies on interrupts to count, so it will never increment inside an ISR.
    micros() works initially, but will start behaving erratically after 1-2 ms."
+   Saving to the SD card has reduced sampling rate, so values are saved to local memory first and then written to SD card. 
 */
 
 #include <SPI.h>
@@ -49,8 +50,9 @@ void setup() {
     //digitalWrite(LED, LOW);
     myFile = SD.open("HEDATA.txt", FILE_WRITE);
     if (myFile) {
-      myFile.println("micros, inches");
+      myFile.println("HE1, micros, HE2, micros");
     }
+    myFile.close();
   }
   zeroPrimary();
   zeroSecondary();
@@ -115,6 +117,7 @@ void saveRPMS() {
     }
     if (counter2 == 50) {
       for (int i = 0; i < 50; i++) {
+        myFile.print(",,");
         myFile.print(secondaryRPM[i]);
         myFile.print(",");
         myFile.println(secondaryMicros[i]);
